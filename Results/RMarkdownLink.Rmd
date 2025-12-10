@@ -4,13 +4,15 @@ title: "Youth Risk Behavioral Surveillance System Report on North Carolina Respo
 author: "Tyler West"
 date: "Decmber 9th, 2025"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+## GitHub Repository: https://github.com/tawest2020/BIOS512_FINAL
 
 ## Overview:
 The Youth Risk Behavioral Surveillance System (YRBSS) measures health-related behaviors and experiences that can lead to death and disability among youth and adults. Results help monitor health trends, identify emerging issues, and plan and evaluate programs that can help improve adolescent health. It's main purpose is to determine how often unhealthy behaviors occur.
