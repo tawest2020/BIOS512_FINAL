@@ -1,0 +1,405 @@
+---
+title: "Youth Risk Behavioral Surveillance System Report on North Carolina Respondents
+  from 2015-2023"
+author: "Tyler West"
+date: "Decmber 9th, 2025"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview:
+The Youth Risk Behavioral Surveillance System (YRBSS) measures health-related behaviors and experiences that can lead to death and disability among youth and adults. Results help monitor health trends, identify emerging issues, and plan and evaluate programs that can help improve adolescent health. It's main purpose is to determine how often unhealthy behaviors occur.
+
+On CDC’s website for YRBSS is a data access page where you can download all national data, region level, and by level of education (middle school or high school). For the purpose of my investigation, I chose highschool students in states N-P, with a plan to filter for North Carolina.
+
+The download was a ASCII file, which is used for SAS. In class, Professor Toups was able to convert our ASCII data into a CSV for easier access and modification of variables, and filtered for NC only observations.
+
+## Codebook:
+1. YEAR - What year was the survey taken in?
+2. SEX - What is the reported biological sex? (M=1/F=2)
+3. GRADE - What grade is the student in? (9-12)
+4. RACE7 - What is the reported race/ethnicity? (1-7)  
+    1 = “American Indian/Alaska Native”  
+    2 = “Asian”  
+    3 = “Black or African American”  
+    4 = “Hispanic/Latino”  
+    5 = “Native Hawaiian/Other Pacific Islander”  
+    6 = “White”  
+    7 = “Multiple Races (Non-Hispanic)”  
+5. FIGHT - Fights involved in within the last 12 months (1-8)  
+    1 = 0 fights, 2 = 1, 3 = 2-3, so forth until 8 = 12+
+6. DRINK - Days involving alcohol consumption in the last month? (1-7)  
+    1 = 0 days  
+    2 = 1 or 2 days  
+    3 = 3 to 5 days  
+    4 = 6 to 9 days  
+    5 = 10 to 19 days  
+    6 = 20 to 29 days  
+    7 = All 30 days  
+7. MARIJUANA - Times used marijuana in the last month? (1-6)  
+    1 =  0 times  
+    2 = 1 or 2 times  
+    3 = 3 to 9 times  
+    4 = 10 to 19 times  
+    5 = 20 to 39 times  
+    6 = 40 or more times  
+8. MULTPART - Number of Sexual Partners (1-7)  
+    1 = 0 partners, 2 = 1 partner, so forth til 7 = 6+
+9. ACTIVITY - Days per week where 60+ minutes of physical activity was met (1-8)  
+    1 = 0 days, 2 = 1 day, so forth
+10. SLEEP - Hours of sleep per night (1-7)  
+    1 = 4 or less, 2 = 5 hours, so forth until 7 = 10+ hours
+11. GRADES - Self-reported averages grades in school (1-7)  
+    1 = As  
+    2 = Bs  
+    3 = Cs  
+    4 = Ds  
+    5 = Unsure  
+    6 = Mixture of grades  
+    7 = Fs  
+12. BULLIED_D - Bullied in the past year (Y/N)
+13. PLAN_D - Was a suicide plan made at least once in the past year? (Y/N)
+14. WEIGHT_D - Self-reported as overweight? (Y/N)
+15. VAPE_D - Vaped in the past month? (Y/N)
+16. FRUIT_D - Did not consume fruit product in past week (Y/N)
+17. VEG_D - Did not consume vegetable product in past week (Y/N)
+
+## Data preprocessing:
+### Step 1: Load in tidyverse
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+```
+### Step 2: Call in my dataset
+```{r}
+YRBSS <- read.csv("C:/Users/tawes/Documents/BIOS512/Project/NC_YRBSS.csv")
+head(YRBSS, 10)
+```
+### Step 3a: Filter dataset
+I applied a filter for the YEAR variable to include values between 2015 to 2023, and then recoded NA observations in RACE7 to 8 so they could be observed as a "Missing" group. I also ran a head and summary function so I could view examples of a new table and see ranges and missing observations from each variable.
+```{r}
+suppressPackageStartupMessages(library(dplyr))
+
+YRBSS_10 <- YRBSS %>%
+  filter(YEAR >= 2015, YEAR <= 2023) %>%
+  mutate(RACE7 = if_else(is.na(RACE7), 8L, RACE7)) %>%
+  arrange(YEAR)
+
+head(YRBSS_10, 10)
+summary(YRBSS_10)
+```
+### Step 3b: Filter out all remaining NA observations from dataset
+```{r}
+sum(complete.cases(YRBSS_10))
+sum(!complete.cases(YRBSS_10))
+YRBSS_c <- YRBSS_10[complete.cases(YRBSS_10), ]
+YRBSS_100 <- subset(YRBSS_c, select = -YEAR)
+sum(!complete.cases(YRBSS_100))
+```
+### Step 4: Model histogram distributions of example variables
+I wanted to view an early visualization of the spread of certain answers whether ordinal/categorical or continuous.
+```{r}
+suppressPackageStartupMessages(library(ggplot2))
+
+ggplot(YRBSS_100, aes(x = FIGHT)) +
+  geom_histogram(binwidth = 1, color = "white") +
+  labs(title = "Histogram of the number of fights in the last year",
+       x = "Fights",
+       y = "Count") +
+  scale_x_continuous(
+    breaks = 1:8, 
+    labels = c("0","1","2-3","4-5","6-7", "8-9", "10-11", "12+")
+  )
+
+ggplot(YRBSS_100, aes(x = ACTIVITY - 1)) +
+  geom_histogram(binwidth = 1, color = "white") +
+  labs(title = "Histogram of days where 60+ minutes of physical activity per week were met",
+       x = "Days of Physical Activity Goal Met",
+       y = "Count")
+
+ggplot(YRBSS_100, aes(x = GRADES, y = SLEEP)) +
+  geom_count() +
+  scale_size_area(max_size = 12) +
+  labs(
+    title = "Count plot of self-reported grades by hours of sleep",
+    size = "Count") +
+  scale_x_continuous(
+    breaks = 1:7, 
+    labels = c("A","B","C","D","?", "Mix", "F")
+  ) +
+  scale_y_continuous(
+    breaks = 1:7, 
+    labels = c("4-","5","6","7","8", "9", "10+")
+  )
+
+ggplot(YRBSS_100, aes(x = DRINK, y = MARIJUANA)) +
+  geom_jitter(width = 0.1, height = 0.1, alpha = 0.4) + 
+  labs(title = "Jitterplot of Drinking and Marijuana Co-Use")
+```
+  
+### Initial takeaways:
+For viewing purposes, axes were remodled after the codebook classification, and for ACTIVITY, 1 was subtracted from each score so that the option started with 0 instead of 1. It is clear that viewing on a basic level like this is limited with results, as many answers have rare outcomes, such as high number of fights, lower grades, and frequent drinking. However, there are still interesting findings, such as peaks at both extremes of days physically active and more frequent cannabis use than drinking. This is interesting but not by any means significant towards understanding relationships between variables.
+
+## kmeans analysis (Clustering)
+### Guiding question for clustering:
+Does natural clusterization exist between certain groupings of variables, and does a common theme exist between them? (ie: social, physical, mental health related groupings)  
+
+### Builder Function Steps 1-4
+```{r}
+builder <- function(n_points, n_clusters){
+sample(((1:n_points) %% n_clusters)+1, n_points, replace=F)
+}
+get_cluster_means <- function(data, labels){
+data %>%
+mutate(label__ = labels) %>%
+group_by(label__) %>%
+summarize(across(everything(), mean), .groups = "drop") %>%
+arrange(label__)
+}
+assign_cluster_fast <- function(data, means){
+data_matrix <- as.matrix(data)
+means_matrix <- as.matrix(means %>% dplyr::select(-label__))
+dii <- sort(rep(1:nrow(data), nrow(means)))
+mii <- rep(1:nrow(means), nrow(data))
+data_repped <- data_matrix[dii, ]
+means_repped <- means_matrix[mii, ]
+diff_squared <- (data_repped - means_repped)^2
+all_distances <- rowSums(diff_squared)
+tibble(dii=dii, mii=mii, distance=all_distances) %>%
+group_by(dii) %>%
+arrange(distance) %>%
+filter(row_number()==1) %>%
+ungroup() %>%
+arrange(dii) %>%
+pull(mii)
+}
+kmeans_done <- function(old_means, new_means, eps=1e-6){
+om <- as.matrix(old_means)
+nm <- as.matrix(new_means)
+m <- mean(sqrt(rowSums((om - nm)^2)))
+if(m < eps) TRUE else FALSE
+}
+mykmeans <- function(data, n_clusters, eps=1e-6, max_it = 1000, verbose = FALSE){
+labels <- builder(nrow(data), n_clusters)
+old_means <- get_cluster_means(data, labels)
+done <- FALSE
+it <- 0
+while(!done & it < max_it){
+labels <- assign_cluster_fast(data, old_means)
+new_means <- get_cluster_means(data, labels)
+if(kmeans_done(old_means, new_means)){
+done <- TRUE
+} else {
+old_means <- new_means
+it <- it + 1
+if(verbose){
+cat(sprintf("%d\n", it))
+}
+}
+}
+list(labels=labels, means=new_means)
+}
+```
+### Run my kmeans function
+```{r}
+label_randomly <- function(n_points, n_clusters){
+sample(((1:n_points) %% n_clusters)+1, n_points, replace=F)
+}
+get_cluster_means <- function(data, labels){
+data %>%
+mutate(label__ = labels) %>%
+group_by(label__) %>%
+summarize(across(everything(), mean), .groups = "drop") %>%
+arrange(label__)
+}
+assign_cluster_fast <- function(data, means){
+data_matrix <- as.matrix(data)
+means_matrix <- as.matrix(means %>% dplyr::select(-label__))
+dii <- sort(rep(1:nrow(data), nrow(means)))
+mii <- rep(1:nrow(means), nrow(data))
+data_repped <- data_matrix[dii, ]
+means_repped <- means_matrix[mii, ]
+diff_squared <- (data_repped - means_repped)^2
+all_distances <- rowSums(diff_squared)
+tibble(dii=dii, mii=mii, distance=all_distances) %>%
+group_by(dii) %>%
+arrange(distance) %>%
+filter(row_number()==1) %>%
+ungroup() %>%
+arrange(dii) %>%
+pull(mii)
+}
+kmeans_done <- function(old_means, new_means, eps=1e-6){
+om <- as.matrix(old_means)
+nm <- as.matrix(new_means)
+m <- mean(sqrt(rowSums((om - nm)^2)))
+if(m < eps) TRUE else FALSE
+}
+mykmeans <- function(data, n_clusters, eps=1e-6, max_it = 1000, verbose = FALSE){
+labels <- label_randomly(nrow(data), n_clusters)
+old_means <- get_cluster_means(data, labels)
+done <- FALSE
+it <- 0
+while(!done & it < max_it){
+labels <- assign_cluster_fast(data, old_means)
+new_means <- get_cluster_means(data, labels)
+if(kmeans_done(old_means, new_means)){
+done <- TRUE
+} else {
+old_means <- new_means
+it <- it + 1
+if(verbose){
+cat(sprintf("%d\n", it))
+}
+}
+}
+list(labels=labels, means=new_means)
+}
+myresults <- mykmeans(YRBSS_100, 3)
+print(myresults$means)
+```
+### Add clusters to dataset and confirm presence
+```{r}
+YRBSS_k <- YRBSS_100
+YRBSS_k$cluster <- myresults$labels
+
+head(YRBSS_k, 10)
+```
+
+## t-SNE Analysis (Dimensionality Reduction)  
+### Load in Rtsne and perform a PCA followed by t-SNE
+```{r}
+suppressPackageStartupMessages(library(Rtsne))
+YRBSS_scaled <- YRBSS_k %>%
+  mutate(
+    across(
+      .cols = -cluster,
+      .fns = ~ as.numeric(scale(.x))
+    )
+  )
+YRBSS_result <- prcomp(
+  YRBSS_k %>% select(-cluster),
+  center = TRUE,
+  scale. = TRUE,
+)
+summary(YRBSS_result)
+YRBSS_result$rotation
+YRBSS_PCA <- as.data.frame(YRBSS_result$x)
+YRBSS_PCA$cluster <- as.factor(YRBSS_k$cluster)
+
+ggplot(YRBSS_PCA, aes(x = PC1, y = PC2, color = cluster)) +
+geom_point() +
+labs(title = "PCA of YRBSS-NC", x = "PC1", y = "PC2")
+set.seed(123)
+tsne <- YRBSS_PCA %>%
+select(PC1:PC10) %>%
+as.matrix()
+tsne_out <- Rtsne(tsne, dims = 2, check_duplicates = FALSE)
+
+results <- as_tibble(tsne_out$Y, .name_repair = "minimal")
+colnames(results) <- c("Dim1", "Dim2")
+results$cluster <- YRBSS_scaled$cluster
+
+ggplot(results, aes(x = Dim1, y = Dim2, color = factor(cluster))) +
+geom_point() +
+labs(title = "t-SNE of YRBSS-NC", x = "t-SNE 1", y = "t-SNE 2")
+```
+
+### Explanation of Visualization
+1. The data does not contain any strong clusters. This is clear due to PC1 explaining 15.9% of the variance and through PC10, only 76% of variance is explained. There are no large directions of variation, causing the t-SNE to make a flower shape with each petal shape showing tiny differences.
+2. Several variables are small categorical ranges instead of large quantitative ranges, which cause a lot of near duplicate observations that do not vary by large amounts. This is why there is high density of observations in the center.
+3. The kmeans we created does not come from real structure, which is why we see petals split in half between red and green throughout the T-SNE. On certain variables, one cluster has higher scores than the other cluster, and vice versa on other variables.
+4. The cluster occupying the center represents the "average" group being closest the the global mean due to points being equally similar to many groups  
+
+### Conclusion for clustering
+All of these variables impact each other to similar degrees, causing clear clusterization to struggle due to no strong bonds between certain responses. The cluster in the center likely represents students who engage less in deviant behaviors while the outer groups likely engage more in deviant behaviors in different ways.  
+
+## Logistic Regression (Classification)  
+### Main research question:
+Can we predict if a student had made a plan to commit suicide in the last year (PLAN_D) based on our other variables?  
+
+### Scale data and split it 75/25 training/testing. Set seed = 123:
+```{r}
+scale <- function(x){
+(x - min(x)) / (max(x) - min(x))
+}
+YRBSS_LR <- YRBSS_100 %>% select(where(is.numeric)) %>%
+mutate(across(where(is.numeric), scale))
+
+set.seed(123)
+n <- nrow(YRBSS_100)
+train_idx <- sample.int(n, size = floor(0.1 * n))
+YRBSS_train <- YRBSS_100 %>% slice(train_idx)
+YRBSS_test <- YRBSS_100 %>% slice(setdiff(seq_len(n), train_idx))
+YRBSS_train %>% write_csv('YRBSS_train.csv')
+YRBSS_test %>% write_csv('YRBSS_test.csv')
+```
+### Fit the model. Shift PLAN_D from 1,2 code to 0,1:  
+
+*NOTE* 0 = Yes and 1 = No now, which will need to be remembered when completing interpretations.
+```{r}
+YRBSS_train$PLAN_D <- ifelse(YRBSS_train$PLAN_D == 2, 1, 0)
+
+f <- PLAN_D ~ .
+m <- glm(f, data = YRBSS_train, family = binomial())
+summary(m)
+```
+### Make predictions on test data.
+```{r}
+YRBSS_test$PLAN_D <- ifelse(YRBSS_test$PLAN_D == 2, 1, 0)
+
+p <- predict(m, newdata = YRBSS_test, type = "response")
+pred <- as.integer(p >= 0.5)
+truth <- YRBSS_test$PLAN_D
+tp <- sum(pred == 0 & truth == 0)
+fp <- sum(pred == 0 & truth == 1)
+tn <- sum(pred == 1 & truth == 1)
+fn <- sum(pred == 1 & truth == 0)
+acc <- (tp + tn) / (tp + fp + tn + fn)
+
+YRBSS_x <- tibble(
+measure = c("True Positive", "False Positive", "True Negative", "False Negative", "Accuracy"),
+value = c(tp, fp, tn, fn, acc)
+)
+YRBSS_x
+
+table(YRBSS_100$PLAN_D)
+```
+### LASSO Regression
+```{r}
+suppressPackageStartupMessages(library(glmnet))
+suppressPackageStartupMessages(library(broom))
+suppressPackageStartupMessages(library(gridExtra))
+
+set.seed(123)
+# Response and predictor matrices
+y <- YRBSS_100$PLAN_D
+X <- model.matrix(PLAN_D ~ ., YRBSS_100)[, -1]   # remove intercept column
+
+# Fit cross-validated LASSO
+cvfit <- cv.glmnet(X, y, alpha = 1)
+fit <- cvfit$glmnet.fit
+
+best_fit <- glmnet(X,y,lambda=cvfit$lambda.min)
+best_fit$beta
+```
+### Interpretation of Regression:
+1. The following predicted a greater likelihood of having planned a suicide attempt in the past year (in order of significance):
+a. Identifying as female
+b. Reported experiencing bullying in the past year
+c. Decreasing hours of sleep per night
+d. Increasing frequency of marijuana use
+e. Increase number of intimate partners
+2. Based on our predictions of the test data, there were nearly as many false positives as there were true due the the large proportion (85.7%) of negatives, but our accuracy was slightly better than our baseline proportion, raising itself to 86.1%.
+3. Our LASSO regression revealed a much greater impact from experiencing bullying in the past year from our initial logistic regression, and has been identified as our key explanatory variable. Other smaller indicators were female gender, vaped in past month, and decreased hours of sleep. The only variable out of the list to be classified as absolutely no prediction was vegetable consumption.  
+
+### Conclusion of Regression:
+An individuals likelihood of planning to take their life is different than the actual act of doing so, as we do not have their data if they are not alive to respond. Therefore, our conclusions are based on those who had a desire to but had not by the time of data collection. Female respondents likely put more thought into planning to take their life while male respondents act on more rash thoughts. As well, experiencing bullying as well as poor average sleep can significantly impact one's mental health to drive these thoughts as well. The other variables that had a smaller effect could likely be attributed to confounding association of other variables and will not be mentioned explicitly along side gender, bullying, and sleep.  
+
+###  Future directions of this data and research:
+If variables were trimmed down based on further logistic regression to determine what other key variables are influenced by, we may start to see more clear clusterization, but for now there are too many variables that are causing wide influence over others that prevent groupings to naturally form. As well, this data being mostly ordinal, categorical, and dichotomous may be better suited for non-continuous/quantitative analyses like what we used. ROC curves, confusion matrices, and other analyses would be better suited if this data was to be continued in research.
