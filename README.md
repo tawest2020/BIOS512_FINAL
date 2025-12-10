@@ -1,5 +1,5 @@
 # BIOS512_FINAL
 There is both a R Markdown file and a Jupyter notebook for your viewing pleasure.  
-Use "YRBSS_NC.csv" to load the dataset into R  
+Use "NC_YRBSS.csv" to load the dataset into R  
   
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/tawest2020/BIOS512_FINAL/HEAD)
